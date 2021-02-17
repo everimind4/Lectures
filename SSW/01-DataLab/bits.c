@@ -397,7 +397,7 @@ int howManyBits(int x) {
     int bit29 = !(x >> 29);
     int bit30 = !(x >> 30);
     int bit31 = !(x >> 31);
-    int ans = 33 + ~(bit00 + bit01 + bit02 + bit03 + bit04 + bit05 + bit06 + bit07 + bit08 + bit09 + bit10 + bit11 + bit12 + bit13 + bit14 + bit15 + bit16 + bit17 + bit18 + bit19 + bit20 + bit21 + bit22 + bit23 + bit24 + bit25 + bit26 + bit27 + bit28 + bit29 + bit30 + bit31) + ~!bit31 + 2;
+    int ans = 35 + ~(bit00 + bit01 + bit02 + bit03 + bit04 + bit05 + bit06 + bit07 + bit08 + bit09 + bit10 + bit11 + bit12 + bit13 + bit14 + bit15 + bit16 + bit17 + bit18 + bit19 + bit20 + bit21 + bit22 + bit23 + bit24 + bit25 + bit26 + bit27 + bit28 + bit29 + bit30 + bit31) + ~!bit31;
     return ans;
 }
 /* 
