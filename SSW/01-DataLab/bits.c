@@ -408,7 +408,7 @@ int howManyBits(int x) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-    return 0;
+    return 1;
 }
 /* 
  * isNegative - return 1 if x < 0, return 0 otherwise 
