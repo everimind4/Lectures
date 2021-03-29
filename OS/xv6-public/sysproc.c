@@ -89,3 +89,11 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+// return how many times 'sys_read()' was called
+// 'getrdc' means 'get read count'!
+int
+sys_getrdc(void)
+{
+  getreadcount();
+  return 0;
+}

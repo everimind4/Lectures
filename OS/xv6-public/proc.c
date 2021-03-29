@@ -532,3 +532,11 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int readcount = 0;
+
+void
+getreadcount(void)
+{
+    cprintf("read() is called %d times\n", readcount);
+}
