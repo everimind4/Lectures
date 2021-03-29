@@ -365,40 +365,7 @@ int fitsBits(int x, int n) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-    int bit00 = !x;
-    int bit01 = !(x >> 1);
-    int bit02 = !(x >> 2);
-    int bit03 = !(x >> 3);
-    int bit04 = !(x >> 4);
-    int bit05 = !(x >> 5);
-    int bit06 = !(x >> 6);
-    int bit07 = !(x >> 7);
-    int bit08 = !(x >> 8);
-    int bit09 = !(x >> 9);
-    int bit10 = !(x >> 10);
-    int bit11 = !(x >> 11);
-    int bit12 = !(x >> 12);
-    int bit13 = !(x >> 13);
-    int bit14 = !(x >> 14);
-    int bit15 = !(x >> 15);
-    int bit16 = !(x >> 16);
-    int bit17 = !(x >> 17);
-    int bit18 = !(x >> 18);
-    int bit19 = !(x >> 19);
-    int bit20 = !(x >> 20);
-    int bit21 = !(x >> 21);
-    int bit22 = !(x >> 22);
-    int bit23 = !(x >> 23);
-    int bit24 = !(x >> 24);
-    int bit25 = !(x >> 25);
-    int bit26 = !(x >> 26);
-    int bit27 = !(x >> 27);
-    int bit28 = !(x >> 28);
-    int bit29 = !(x >> 29);
-    int bit30 = !(x >> 30);
-    int bit31 = !(x >> 31);
-    int ans = 35 + ~(bit00 + bit01 + bit02 + bit03 + bit04 + bit05 + bit06 + bit07 + bit08 + bit09 + bit10 + bit11 + bit12 + bit13 + bit14 + bit15 + bit16 + bit17 + bit18 + bit19 + bit20 + bit21 + bit22 + bit23 + bit24 + bit25 + bit26 + bit27 + bit28 + bit29 + bit30 + bit31) + ~!bit31;
-    return ans;
+    return 0;
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -499,14 +466,19 @@ int negate(int x) {
  *   Rating: 4
  */
 int satAdd(int x, int y) {
+    /*
     int xpy = x + y;
     int xsign = ~(x >> 31) + 1;
     int ysign = ~(y >> 31) + 1;
     int xandysign = (x + y) >> 1;
     int xpysign = ~(xpy >> 31) + 1;
     int isflowed = (xsign ^ xpysign) & (ysign ^ xpysign);
-    int ans = (xpy | (~isflowed + 1)) + ((!xandysign & isflowed) << 31);
+    int ans = (xpy | (~isflowed + 1)) + (((!xandysign) & isflowed) << 31);
     return ans;
+    */
+    int issamesign = ((x >> 31)^(y >> 31)) + 1;
+    // being solved
+    return issamesign;
 }
 /* 
  * sign - return 1 if positive, 0 if zero, and -1 if negative
@@ -535,7 +507,15 @@ int sign(int x) {
  *   Rating: 2
  */
 unsigned float_abs(unsigned uf) {
-  return 2;
+    unsigned special = (((1 << 8) - 1) << 23);
+    unsigned isspecial = (uf & special) == special; 
+    unsigned marker = ~(1 << 31);
+    unsigned absolute = uf & marker;
+    unsigned ans = absolute;
+    if (isspecial)
+        if (uf << 9)
+            ans = uf;
+    return ans;
 }
 /* 
  * float_f2i - Return bit-level equivalent of expression (int) f

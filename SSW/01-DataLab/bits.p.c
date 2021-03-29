@@ -83,62 +83,30 @@ int divpwr2(int x, int n) {
 }
 #line 351
 int fitsBits(int x, int n) {
-    return 2;
-}
-#line 366
-int howManyBits(int x) {
-    int bit00=  !x;
-    int bit01=  !(x >> 1);
-    int bit02=  !(x >> 2);
-    int bit03=  !(x >> 3);
-    int bit04=  !(x >> 4);
-    int bit05=  !(x >> 5);
-    int bit06=  !(x >> 6);
-    int bit07=  !(x >> 7);
-    int bit08=  !(x >> 8);
-    int bit09=  !(x >> 9);
-    int bit10=  !(x >> 10);
-    int bit11=  !(x >> 11);
-    int bit12=  !(x >> 12);
-    int bit13=  !(x >> 13);
-    int bit14=  !(x >> 14);
-    int bit15=  !(x >> 15);
-    int bit16=  !(x >> 16);
-    int bit17=  !(x >> 17);
-    int bit18=  !(x >> 18);
-    int bit19=  !(x >> 19);
-    int bit20=  !(x >> 20);
-    int bit21=  !(x >> 21);
-    int bit22=  !(x >> 22);
-    int bit23=  !(x >> 23);
-    int bit24=  !(x >> 24);
-    int bit25=  !(x >> 25);
-    int bit26=  !(x >> 26);
-    int bit27=  !(x >> 27);
-    int bit28=  !(x >> 28);
-    int bit29=  !(x >> 29);
-    int bit30=  !(x >> 30);
-    int bit31=  !(x >> 31);
-    int ans=  33 + ~(bit00 + bit01 + bit02 + bit03 + bit04 + bit05 + bit06 + bit07 + bit08 + bit09 + bit10 + bit11 + bit12 + bit13 + bit14 + bit15 + bit16 + bit17 + bit18 + bit19 + bit20 + bit21 + bit22 + bit23 + bit24 + bit25 + bit26 + bit27 + bit28 + bit29 + bit30 + bit31) + ~!bit31 + 2;
+    int ans=  !!(x >> n);
     return ans;
 }
-#line 409
+#line 367
+int howManyBits(int x) {
+    return 0;
+}
+#line 377
 int isLessOrEqual(int x, int y) {
     return 0;
 }
-#line 419
+#line 387
 int isNegative(int x) {
     int ans=  ~(x >> 31) + 1;
     return ans;
 }
-#line 431
+#line 399
 int isPower2(int x) {
     int isnotzero=  !!x;
     int ispow2=  !(x ^((( x ^( x + ~0)) + 1) >> 1));
     int ans=  isnotzero & ispow2;
     return ans;
 }
-#line 444
+#line 412
 int isTmin(int x) {
     int isnotzero=  !!x;
     int xm1=  x + ~0;
@@ -146,12 +114,12 @@ int isTmin(int x) {
     int ans=  isnotzero & istmin;
     return ans;
 }
-#line 457
+#line 425
 int minusOne(void) {
     int ans=  ~0;
     return ans;
 }
-#line 472
+#line 440
 int multFiveEighths(int x) {
     int multFive=(  x << 2) + x;
     int isneg=  ~(x >> 31) + 1;
@@ -159,24 +127,19 @@ int multFiveEighths(int x) {
     int ans=(  multFive + ifneg) >> 3;
     return ans;
 }
-#line 486
+#line 454
 int negate(int x) {
     int ans=  ~x + 1;
     return ans;
 }
-#line 500
+#line 468
 int satAdd(int x, int y) {
-    int xpy=  x + y;
-    int xsign=  ~(x >> 31) + 1;
-    int ysign=  ~(y >> 31) + 1;
-    int xandysign=(  x + y) >> 1;
-    int xpysign=  ~(xpy >> 31) + 1;
-    int isflowed=(  xsign ^ xpysign) &( ysign ^ xpysign);
-    int Tmin=  1 << 31;
-    int ans=((  xpy |( ~isflowed + 1)) | Tmin) +( !xandysign << 31);
-    return ans;
+#line 479
+    int issamesign=((  x >> 31)^(y >> 31)) + 1;
+
+    return issamesign;
 }
-#line 519
+#line 491
 int sign(int x) {
     int isnotzero=  !!x;
     int signbit=  x >> 31;
@@ -184,27 +147,41 @@ int sign(int x) {
     int ans=  signbit + ispos;
     return ans;
 }
-#line 537
+#line 509
 unsigned float_abs(unsigned uf) {
-  return 2;
+    unsigned special=(((  1 << 8) - 1) << 23);
+    unsigned isspecial=(  uf & special) == special;
+    unsigned marker=  ~(1 << 31);
+    unsigned absolute=  uf & marker;
+    unsigned ans;
+    if (isspecial) {
+        if (uf << 9) 
+            ans = uf;
+        else 
+            ans = absolute;
+    }
+    else {
+        ans = absolute;
+    }
+    return ans;
 }
-#line 552
+#line 538
 int float_f2i(unsigned uf) {
   return 2;
 }
-#line 566
+#line 552
 unsigned float_half(unsigned uf) {
   return 2;
 }
-#line 578
+#line 564
 unsigned float_i2f(int x) {
   return 2;
 }
-#line 592
+#line 578
 unsigned float_neg(unsigned uf) {
  return 2;
 }
-#line 606
+#line 592
 unsigned float_twice(unsigned uf) {
   return 2;
 }
