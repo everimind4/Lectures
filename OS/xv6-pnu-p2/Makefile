@@ -181,6 +181,12 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
+	_minitop\
+	_test1\
+	_test2\
+	_test3\
+	_test4\
+	_test5\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -211,7 +217,7 @@ bochs : fs.img xv6.img
 	bochs -q
 
 # try to generate a unique GDB port
-GDBPORT = $(shell expr `id -u` % 5000 + 25000)
+GDBPORT = $(shell expr `id -u` % 5000 + 20000)
 # QEMU's gdb stub command line changed in 0.11
 QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \

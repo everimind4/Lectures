@@ -88,6 +88,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->nice = 20;
 
   release(&ptable.lock);
 
@@ -198,6 +199,7 @@ fork(void)
   }
   np->sz = curproc->sz;
   np->parent = curproc;
+  np->nice = curproc->nice;
   *np->tf = *curproc->tf;
 
   // Clear %eax so that fork returns 0 in the child.
@@ -322,37 +324,51 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
-  struct cpu *c = mycpu();
-  c->proc = 0;
-  
-  for(;;){
-    // Enable interrupts on this processor.
-    sti();
+    struct proc *p;
+    int nicest = 42;
+    struct cpu *c = mycpu();
+    c->proc = 0;
+    
+    for(;;){
+        // Enable interrupts on this processor.
+        sti();
+        
+        // Loop over process table looking for process to run.
+        acquire(&ptable.lock);
+        
+        // Traverse entire table to fine highest priority,
+        // smallest nice value (assign to variable 'nicest')  
+        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+            if (p->state != RUNNABLE)
+                continue;
+            if (p->nice < nicest)
+                nicest = p->nice;
+        }
+        // Schedule Most High Priority Process 
+        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+            if (p->state != RUNNABLE)
+                continue;
+            // Skip Not Highest Priority Process
+            if (p->nice > nicest) // If Priority of p is not highest
+                continue;         // Don't schedule the process 'p'
 
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+            // Switch to chosen process.  It is the process's job
+            // to release ptable.lock and then reacquire it
+            // before jumping back to us.
+            c->proc = p;
+            switchuvm(p);
+            p->state = RUNNING;
+            
+            swtch(&(c->scheduler), p->context);
+            switchkvm();
+            
+            // Process is done running for now.
+            // It should have changed its p->state before coming back.
+            c->proc = 0;
+        }
+        nicest = 42;
+        release(&ptable.lock);
     }
-    release(&ptable.lock);
-
-  }
 }
 
 // Enter scheduler.  Must hold only ptable.lock
@@ -531,4 +547,85 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+// Set nice value(priority of process).
+// if setting success, return 0
+// if wrong pid or out of range (0-40)
+// nice_value, return -1
+int
+setnice(int pid, int nice_value)
+{
+    struct proc *p;
+    acquire(&ptable.lock);
+    if (nice_value < 0 || nice_value > 40) {
+        release(&ptable.lock);
+        return -1;
+    }
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if (p->pid != pid)
+            continue;
+        else {
+            p->nice = nice_value;
+            release(&ptable.lock);
+            yield();
+            return 0;
+        }
+    }
+    release(&ptable.lock);
+    return -1;    
+}
+
+// Return nice value(priority of process).
+// if wrong pid, return -1
+int
+getnice(int pid)
+{
+    struct proc *p;
+    acquire(&ptable.lock);
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if (p->pid != pid) {
+            continue;
+        }
+        else {
+            release(&ptable.lock);
+            return p->nice;
+        }
+    }
+    release(&ptable.lock);
+    return -1;
+}
+
+// Print process informations in console.
+void
+ps(int pid)
+{
+    int ppid;
+    static char *states[] = {
+        [UNUSED]    "unused",
+        [EMBRYO]    "embryo",
+        [SLEEPING]  "sleep ",
+        [RUNNABLE]  "runble",
+        [RUNNING]   "run   ",
+        [ZOMBIE]    "zombie"
+    };
+    struct proc *p;
+    char *state;
+    acquire(&ptable.lock);
+    cprintf("pid\tppid\tnice\tstate\tname\n");
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if(p->state == UNUSED)
+            continue;
+        if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+            state = states[p->state];
+        else
+            state = "???";
+        if (p->pid == 1)
+            ppid = 1;
+        else
+            ppid = p->parent->pid;
+        if (pid == 0 || pid == p->pid)
+            cprintf("%d\t%d\t%d\t%s\t%s\n", p->pid, ppid, p->nice, state, p->name);
+    }
+    release(&ptable.lock);
 }

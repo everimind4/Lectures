@@ -443,3 +443,29 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+int
+sys_setnice(void)
+{
+    int pid, nice;
+    argint(0, &pid);
+    argint(1, &nice);
+    return setnice(pid, nice);
+}
+
+int
+sys_getnice(void)
+{
+    int pid;
+    argint(0, &pid);
+    return getnice(pid);
+}
+
+int
+sys_ps(void)
+{
+    int pid;
+    argint(0, &pid);
+    ps(pid);
+    return 0;
+}
