@@ -175,7 +175,7 @@ NOTES:
  *   Rating: 1
  */
 int bitOr(int x, int y) {
-  return 2;
+    return ~(~x & ~y);
 }
 /* 
  * isEqual - return 1 if x == y, and 0 otherwise 
@@ -185,7 +185,7 @@ int bitOr(int x, int y) {
  *   Rating: 2
  */
 int isEqual(int x, int y) {
-  return 2;
+    return !(x ^ y);
 }
 /* 
  * anyEvenBit - return 1 if any even-numbered bit in word set to 1
@@ -195,7 +195,10 @@ int isEqual(int x, int y) {
  *   Rating: 2
  */
 int anyEvenBit(int x) {
-  return 2;
+    int mask = 0x55;
+    mask = mask | mask << 8;
+    mask = mask | mask << 16;
+    return !!(x & mask);
 }
 /* 
  * allEvenBits - return 1 if all even-numbered bits in word set to 1
@@ -205,7 +208,10 @@ int anyEvenBit(int x) {
  *   Rating: 2
  */
 int allEvenBits(int x) {
-  return 2;
+    int mask = 0x55;
+    mask = mask | mask << 8;
+    mask = mask | mask << 16;
+    return !((x & mask) ^ mask);
 }
 /* 
  * rotateLeft - Rotate x to the left by n
@@ -216,7 +222,18 @@ int allEvenBits(int x) {
  *   Rating: 3 
  */
 int rotateLeft(int x, int n) {
-  return 2;
+    int nums = 33 + ~n;
+    int mask = ~(~0 << n);
+    int right = (x >> nums) & mask;
+    int left = x << n;
+    return left + right;
+    /*
+    int bitnums = 33 + ~n;
+    int leftmask = ~0 << bitnums;
+    int leftbits = x & leftmask;
+    int rotated = ((leftbits >> 1) & (~(1 << 31))) >> (bitnums + ~0);
+    return (x << n) | rotated;
+    */
 }
 /* 
  * copyLSB - set all bits of result to least significant bit of x
@@ -226,7 +243,7 @@ int rotateLeft(int x, int n) {
  *   Rating: 2
  */
 int copyLSB(int x) {
-  return 2;
+    return (x << 31) >> 31;
 }
 /*
  * isTmax - returns 1 if x is the maximum, two's complement number,
@@ -236,7 +253,7 @@ int copyLSB(int x) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  return 2;
+    return !(((x^(x+1))+1)|(!(x+1)));
 }
 /* 
  * logicalNeg - implement the ! operator, using all of 
@@ -247,7 +264,8 @@ int isTmax(int x) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+    return ((x|(~x+1))>>31)+1;
+    // return ((x>>31)+1)&(((~x+1)>>31)+1);
 }
 /* 
  * subOK - Determine if can compute x-y without overflow
@@ -257,8 +275,12 @@ int logicalNeg(int x) {
  *   Max ops: 20
  *   Rating: 3
  */
-int subOK(int x, int y) {
-  return 2;
+int subOK(int x, int y) { 
+    int sub = x + ~y + 1;
+    int x_sub_diff_sign = x ^ sub;
+    int x_y_diff_sign = x ^ y;
+    int subNOTOK_mask = (x_sub_diff_sign & x_y_diff_sign) >> 31;
+    return !subNOTOK_mask;
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -268,7 +290,14 @@ int subOK(int x, int y) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+    int compared = ~x + 1 + y;
+    int x_sign = x >> 31;
+    int y_sign = y >> 31;
+    int is_x_neg_y_pos = x_sign & !y_sign;
+    int x_y_diff_sign = x_sign ^ y_sign;
+    int compared_sign = compared >> 31;
+    int is_same_sign_and_larger_y = !(x_y_diff_sign | compared_sign);    
+    return is_x_neg_y_pos | is_same_sign_and_larger_y;
 }
 /*
  * satMul3 - multiplies by 3, saturating to Tmin or Tmax if overflow
@@ -282,7 +311,15 @@ int isLessOrEqual(int x, int y) {
  *  Rating: 3
  */
 int satMul3(int x) {
-    return 2;
+    int Mul2 = x << 1;
+    int Mul3 = Mul2 + x;
+    int overflowmask = ((x ^ Mul2) | (x ^ Mul3)) >> 31;
+    int Tmax = ~(1 << 31);
+    int x_sign = x >> 31;
+    int norMul3 = ~overflowmask & Mul3;
+    int sat_Val = Tmax ^ x_sign;  
+    int satMul3 = overflowmask & sat_Val; 
+    return norMul3 | satMul3;
 }
 /* 
  * tc2sm - Convert from two's complement to sign-magnitude 
@@ -294,7 +331,9 @@ int satMul3(int x) {
  *   Rating: 4
  */
 int tc2sm(int x) {
-  return 2;
+    int x_signmask = x >> 31;
+    int x_signbits = x_signmask << 31;
+    return x_signbits + (x_signmask ^ x) + (~x_signmask + 1);
 }
 /* 
  * float_abs - Return bit-level equivalent of absolute value of f for
@@ -308,7 +347,13 @@ int tc2sm(int x) {
  *   Rating: 2
  */
 unsigned float_abs(unsigned uf) {
-  return 2;
+    unsigned NaN = 0x7F800000;
+    unsigned max = 0x7FFFFFFF;
+    unsigned abs = uf & max;
+    if (abs > NaN)
+        return uf;
+    else
+        return abs;
 }
 /* 
  * float_neg - Return bit-level equivalent of expression -f for
@@ -322,7 +367,13 @@ unsigned float_abs(unsigned uf) {
  *   Rating: 2
  */
 unsigned float_neg(unsigned uf) {
- return 2;
+    unsigned NaN = 0x7F800000;
+    unsigned max = 0x7FFFFFFF;
+    unsigned neg = uf ^ 0x80000000;
+    if ((uf & max) > NaN)
+        return uf;
+    else
+        return neg;
 }
 /* 
  * float_twice - Return bit-level equivalent of expression 2*f for
@@ -336,5 +387,14 @@ unsigned float_neg(unsigned uf) {
  *   Rating: 4
  */
 unsigned float_twice(unsigned uf) {
-  return 2;
+    unsigned NaN = 0x7F800000;
+    unsigned exp = NaN & uf;
+    unsigned sign = 0x80000000 & uf;
+    unsigned twice = (uf << 1) | sign;
+    if (exp == NaN) // uf is NaN
+        return uf;
+    else if (exp == 0) // us is 2^n
+        return twice;
+    else
+        return uf + 0x00800000;    
 }
