@@ -248,6 +248,47 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   return newsz;
 }
 
+// Modified allocuvm function for user process stack allocation
+int
+allocuvm_forstack(pde_t *pgdir, uint oldsz, uint newsz) {
+    if (newsz >= KERNBASE)
+        return 0;
+    if (newsz < oldsz)
+        return oldsz;
+
+    int count = 0;
+    int maxcount = (newsz - oldsz) / PGSIZE - 1;
+
+    for (uint a = oldsz; a < newsz; a += PGSIZE) {
+        if (!(count % maxcount))
+            allocuvm(pgdir, a, a + PGSIZE);
+        else {
+            pte_t *pte_stack = walkpgdir(pgdir, (char*)a, 1);
+            *pte_stack |= PTE_W | PTE_U;
+        }
+        count++;
+    } 
+    return newsz;
+}
+
+// Page Fault Handler Function for Stack Pages
+void
+pagefault(void) {
+    uint a = PGROUNDDOWN((uint)(char*)rcr2());
+    pde_t *pgdir = myproc()->pgdir;
+    pte_t *pte_stack = walkpgdir(pgdir, (char*)a, 0);
+
+    if (*pte_stack & PTE_U) { 
+        allocuvm(pgdir, a, a + PGSIZE);
+        lcr3(V2P(pgdir));;
+        cprintf("[Pagefault]Allocate new page!\n");
+    }
+    else {
+        cprintf("[Pagefault]Invalid access!\n");
+        myproc()->killed = 1;
+    }
+}
+
 // Deallocate user pages to bring the process size from oldsz to
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
@@ -325,8 +366,11 @@ copyuvm(pde_t *pgdir, uint sz)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
-    if(!(*pte & PTE_P))
-      panic("copyuvm: page not present");
+    if(!(*pte & PTE_P)) {
+        pte_t *pte_child = walkpgdir(d, (char*)i, 0);
+        *pte_child = *pte;
+        continue;
+    }
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
