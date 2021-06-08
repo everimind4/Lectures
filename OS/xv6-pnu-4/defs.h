@@ -69,6 +69,9 @@ void            kfree(char*);
 void            kinit1(void*, void*);
 void            kinit2(void*, void*);
 int				freemem(void);
+uint            get_refcounter(uint);
+void            inc_refcounter(uint);
+void            dec_refcounter(uint);
 
 // kbd.c
 void            kbdintr(void);
@@ -182,6 +185,7 @@ void            freevm(pde_t*);
 void            inituvm(pde_t*, char*, uint);
 int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
 pde_t*          copyuvm(pde_t*, uint);
+void            pagefault(void);
 void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);

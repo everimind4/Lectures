@@ -311,14 +311,13 @@ clearpteu(pde_t *pgdir, char *uva)
 }
 
 // Given a parent process's page table, create a copy
-// of it for a child.
+// of it for a child. (Modified for Copy-on-Write)
 pde_t*
 copyuvm(pde_t *pgdir, uint sz)
 {
   pde_t *d;
   pte_t *pte;
   uint pa, i, flags;
-  char *mem;
 
   if((d = setupkvm()) == 0)
     return 0;
@@ -327,19 +326,48 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
+    *pte &= ~PTE_W;
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
+    if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0)
       goto bad;
-    memmove(mem, (char*)P2V(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0)
-      goto bad;
+    inc_refcounter(pa);
   }
+  lcr3(V2P(pgdir));
   return d;
 
 bad:
   freevm(d);
+  lcr3(V2P(pgdir));
   return 0;
+}
+
+// Unwritable Page Fault Handler Function
+void pagefault(void) {
+    uint va = PGROUNDDOWN(rcr2());
+    pde_t *pgdir = myproc()->pgdir;
+    pte_t *pte = walkpgdir(pgdir, (char*)va, 0);
+    uint pa = PTE_ADDR(*pte), flags = PTE_FLAGS(*pte);
+    char *mem;
+
+    uint refcounter = get_refcounter(pa);
+    if (refcounter > 1) {
+        if((mem = kalloc()) == 0)
+            goto bad;
+        memmove(mem, (char*)P2V(pa), PGSIZE);
+        *pte &= ~PTE_P;
+        if(mappages(pgdir, (void*)va, PGSIZE, V2P(mem), flags) < 0)
+            goto bad;
+        dec_refcounter(pa);
+    }
+    else if (refcounter == 1)
+        *pte |= PTE_W;
+    lcr3(V2P(pgdir));
+    return;
+bad:
+    freevm(pgdir);
+    lcr3(V2P(pgdir));
+    return;
 }
 
 //PAGEBREAK!

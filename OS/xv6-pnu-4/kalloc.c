@@ -9,6 +9,8 @@
 #include "mmu.h"
 #include "spinlock.h"
 
+uint pgrefcounter[PHYSTOP >> PGSHIFT]; // Ref.Counter for Physical Pages
+
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
                    // defined by the kernel linker script in kernel.ld
@@ -49,8 +51,10 @@ freerange(void *vstart, void *vend)
 {
   char *p;
   p = (char*)PGROUNDUP((uint)vstart);
-  for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
+  for(; p + PGSIZE <= (char*)vend; p += PGSIZE) {
+    pgrefcounter[V2P(p) >> PGSHIFT] = 0;
     kfree(p);
+  }
 }
 //PAGEBREAK: 21
 // Free the page of physical memory pointed at by v,
@@ -65,17 +69,20 @@ kfree(char *v)
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
 
-  // Fill with junk to catch dangling refs.
-  memset(v, 1, PGSIZE);
+  dec_refcounter(V2P(v));
+  if(get_refcounter(V2P(v)) == 0) {
+    // Fill with junk to catch dangling refs.
+    memset(v, 1, PGSIZE);
 
-  if(kmem.use_lock)
-    acquire(&kmem.lock);
-  numfreepages++;
-  r = (struct run*)v;
-  r->next = kmem.freelist;
-  kmem.freelist = r;
-  if(kmem.use_lock)
-    release(&kmem.lock);
+    if(kmem.use_lock)
+      acquire(&kmem.lock);
+    numfreepages++;
+    r = (struct run*)v;
+    r->next = kmem.freelist;
+    kmem.freelist = r;
+    if(kmem.use_lock)
+      release(&kmem.lock);
+  }
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -90,8 +97,10 @@ kalloc(void)
     acquire(&kmem.lock);
   numfreepages--;
   r = kmem.freelist;
-  if(r)
+  if(r) {
+    pgrefcounter[V2P(r) >> PGSHIFT] = 1;
     kmem.freelist = r->next;
+  }
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
@@ -101,3 +110,17 @@ int freemem(){
   return numfreepages;
 }
 
+// Reference Counter API functions.
+// To get, increase, decrease relatively.
+uint get_refcounter(uint pa) {
+    return pgrefcounter[pa >> PGSHIFT];
+}
+
+void inc_refcounter(uint pa) {
+    pgrefcounter[pa >> PGSHIFT]++;
+}
+
+void dec_refcounter(uint pa) {
+    if (pgrefcounter[pa >> PGSHIFT] > 0)
+        pgrefcounter[pa >> PGSHIFT]--;
+}
